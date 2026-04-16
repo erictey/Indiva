@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DataManagement } from '../components/DataManagement';
+import { EvidenceColumn } from '../components/EvidenceColumn';
 import { MissionCard } from '../components/MissionCard';
 import { useAppContext } from '../context/AppContext';
 import { downloadTextFile, makeExportFilename } from '../lib/storage';
@@ -27,31 +28,30 @@ export function HistoryScreen() {
     <section className="screen stack-xl">
       <header className="panel hero-panel animate-slide-up">
         <p className="eyebrow">History</p>
-        <h2>Archived cycles and reflections</h2>
+        <h2>Your Journey So Far</h2>
         <p className="screen-copy">
-          Past cycles stay readable even if you later edit or remove missions, because history
-          stores text snapshots.
+          Every week you complete is saved here. Past reflections stay readable even if you change your focuses later.
         </p>
       </header>
 
       <section className="stack-lg stagger-in">
         {history.length > 0 ? (
           history.map((entry, index) => (
-            <article 
-              className="panel history-card" 
+            <article
+              className="panel history-card"
               key={entry.id}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="section-header">
                 <div>
-                  <p className="eyebrow">Cycle</p>
+                  <p className="eyebrow">Week</p>
                   <h3>
-                    {new Date(entry.startDate).toLocaleDateString(undefined, { 
-                      month: 'short', 
-                      day: 'numeric' 
+                    {new Date(entry.startDate).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric'
                     })} to{' '}
-                    {new Date(entry.endDate).toLocaleDateString(undefined, { 
-                      month: 'short', 
+                    {new Date(entry.endDate).toLocaleDateString(undefined, {
+                      month: 'short',
                       day: 'numeric',
                       year: 'numeric'
                     })}
@@ -81,11 +81,37 @@ export function HistoryScreen() {
                 <MissionCard text={entry.shapeText} title="Shape" category="shape" />
                 <MissionCard text={entry.workWithText} title="Work With" category="workWith" />
               </div>
+
+              {Object.values(entry.evidence).some((list) => list.length > 0) ? (
+                <div className="mission-grid" style={{ marginTop: '16px' }}>
+                  {entry.evidence.build.length > 0 ? (
+                    <EvidenceColumn
+                      entries={entry.evidence.build}
+                      missionText={entry.buildText}
+                      title="Build"
+                    />
+                  ) : null}
+                  {entry.evidence.shape.length > 0 ? (
+                    <EvidenceColumn
+                      entries={entry.evidence.shape}
+                      missionText={entry.shapeText}
+                      title="Shape"
+                    />
+                  ) : null}
+                  {entry.evidence.workWith.length > 0 ? (
+                    <EvidenceColumn
+                      entries={entry.evidence.workWith}
+                      missionText={entry.workWithText}
+                      title="Work With"
+                    />
+                  ) : null}
+                </div>
+              ) : null}
               <section className="reflection-note">
                 <p className="eyebrow">Reflection</p>
                 <p className="mission-text">{entry.reflection.text}</p>
                 <p className="date-copy">
-                  Submitted {new Date(entry.reflection.submittedAt).toLocaleString(undefined, {
+                  Written {new Date(entry.reflection.submittedAt).toLocaleString(undefined, {
                     month: 'short',
                     day: 'numeric',
                     hour: 'numeric',
@@ -97,7 +123,7 @@ export function HistoryScreen() {
           ))
         ) : (
           <div className="panel empty-state animate-fade-in">
-            <p>No completed cycles yet. Reflections appear here after first week closes.</p>
+            <p>No completed weeks yet. Once you finish your first week and reflect, it'll show up here.</p>
           </div>
         )}
       </section>

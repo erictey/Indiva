@@ -1,35 +1,51 @@
 import { useEffect, useState } from 'react';
 import { CountdownTimer } from '../components/CountdownTimer';
-import { CoreValuesDisplay } from '../components/CoreValuesDisplay';
+import { EvidenceColumn } from '../components/EvidenceColumn';
 import { FloatingBubble } from '../components/FloatingBubble';
-import { MissionCard } from '../components/MissionCard';
 import { MotivationalMessage } from '../components/MotivationalMessage';
 import { useAppContext } from '../context/AppContext';
+import { CATEGORY_DETAILS } from '../lib/categoryModel';
+import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  createEmptyCycleEvidence,
+  type MissionCategory,
+} from '../lib/types';
+
+type DashboardModalState =
+  | { type: 'info'; category: MissionCategory }
+  | { type: 'journal' }
+  | null;
 
 function formatDate(dateIso?: string) {
-  return dateIso ? new Date(dateIso).toLocaleDateString(undefined, { 
-    weekday: 'short',
-    month: 'short', 
-    day: 'numeric' 
-  }) : 'Unknown';
+  return dateIso
+    ? new Date(dateIso).toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      })
+    : 'Unknown';
+}
+
+function formatDateRange(startIso?: string, endIso?: string) {
+  if (!startIso || !endIso) return 'This Week';
+  return `${formatDate(startIso)} → ${formatDate(endIso)}`;
 }
 
 export function DashboardScreen() {
-  const { activeCycle, activeCycleItems, coreValues, cycleMessage } = useAppContext();
+  const { activeCycle, activeCycleItems, coreValues, cycleMessage, addEvidence, deleteEvidence } =
+    useAppContext();
   const [showGreeting, setShowGreeting] = useState(true);
   const [greetingPhase, setGreetingPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
+  const [modalState, setModalState] = useState<DashboardModalState>(null);
+  const [journalCategory, setJournalCategory] = useState<MissionCategory>('build');
 
   useEffect(() => {
     if (showGreeting) {
-      // Phase 1: Enter animation (already happening via CSS)
       const holdTimer = setTimeout(() => setGreetingPhase('hold'), 800);
-      
-      // Phase 2: Exit animation
       const exitTimer = setTimeout(() => setGreetingPhase('exit'), 1800);
-      
-      // Phase 3: Switch to dashboard
       const switchTimer = setTimeout(() => setShowGreeting(false), 2300);
-      
+
       return () => {
         clearTimeout(holdTimer);
         clearTimeout(exitTimer);
@@ -38,66 +54,268 @@ export function DashboardScreen() {
     }
   }, [showGreeting]);
 
+  useEffect(() => {
+    if (!modalState) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setModalState(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalState]);
+
   if (showGreeting) {
     return (
       <section className="screen">
-        <div 
+        <div
           className={`step-greeting dash-greeting ${greetingPhase === 'exit' ? 'screen-exit' : ''}`}
         >
           <h2 className="greeting-title greeting-fade-in">Welcome back</h2>
-          <p className="greeting-sub">Stay with the mission you chose.</p>
+          <p className="greeting-sub">You're right where you need to be. One day at a time.</p>
         </div>
       </section>
     );
   }
 
+  const missionSummary = CATEGORY_ORDER.map((category) => ({
+    category,
+    label: CATEGORY_LABELS[category],
+    text: activeCycleItems[category]?.text ?? `No ${CATEGORY_LABELS[category].toLowerCase()} focus set.`,
+    intention:
+      activeCycle?.intentions[category]?.trim() || 'No intention saved yet for this focus.',
+  }));
+
+  const evidence = activeCycle?.evidence ?? createEmptyCycleEvidence();
+  const totalEvidence = CATEGORY_ORDER.reduce(
+    (total, category) => total + evidence[category].length,
+    0,
+  );
+  const activeInfo =
+    modalState?.type === 'info' ? CATEGORY_DETAILS[modalState.category] : null;
+  const selectedInfoMission =
+    modalState?.type === 'info'
+      ? missionSummary.find((mission) => mission.category === modalState.category) ?? null
+      : null;
+  const journalMissionText =
+    activeCycleItems[journalCategory]?.text ??
+    `No ${CATEGORY_LABELS[journalCategory].toLowerCase()} focus set.`;
+  const journalIntention = activeCycle?.intentions[journalCategory]?.trim() ?? '';
+  const journalMissionSummary = journalIntention
+    ? `${journalMissionText} — ${journalIntention}`
+    : journalMissionText;
+  const modalTitleId =
+    modalState?.type === 'info' ? `${modalState.category}-meaning-title` : 'journal-modal-title';
+
   return (
-    <section className="screen stack-xl">
-      <div className="animate-slide-up" style={{ animationDelay: '0s' }}>
-        <CoreValuesDisplay values={coreValues} />
+    <section className="screen">
+      <div className="dashboard-layout">
+        <header className="panel week-hero animate-slide-up" style={{ animationDelay: '0s' }}>
+          <div className="week-hero-row">
+            <span className="badge state-pill state-active_week">This Week</span>
+          </div>
+          <h2 className="week-hero-title">
+            {formatDateRange(activeCycle?.startDate, activeCycle?.endDate)}
+          </h2>
+          <p className="week-hero-sub">You're on your way — one day at a time.</p>
+          {coreValues.length > 0 ? (
+            <div className="week-hero-values">
+              <p className="eyebrow">Your Values</p>
+              <div className="badge-row">
+                {coreValues.map((value) => (
+                  <span className="badge available" key={value.id}>
+                    {value.text}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </header>
+
+        <section className="dashboard-main animate-slide-up" style={{ animationDelay: '0.06s' }}>
+          <div className="dashboard-missions-area">
+            <div className="panel stack-md dashboard-primary-panel">
+              <div className="section-header">
+                <div>
+                  <p className="eyebrow">This Week</p>
+                  <h2>What You're Working On</h2>
+                </div>
+              </div>
+              <div className="primary-mission-grid">
+                {missionSummary.map((mission) => (
+                  <div className="primary-mission-item" key={mission.category}>
+                    <p className="primary-mission-label">{mission.label}</p>
+                    <div className="primary-mission-body">
+                      <p className="primary-mission-text">{mission.text}</p>
+                      <p className="primary-mission-motto">{mission.intention}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="dashboard-bubble-grid stagger-in">
+              {missionSummary.map((mission, index) => {
+                const detail = CATEGORY_DETAILS[mission.category];
+
+                return (
+                  <FloatingBubble delay={index} intensity={1} key={mission.category}>
+                    <button
+                      className={`panel dashboard-bubble-card dashboard-bubble-card-${mission.category}`}
+                      onClick={() =>
+                        setModalState({ type: 'info', category: mission.category })
+                      }
+                      type="button"
+                    >
+                      <p className="eyebrow">{mission.label}</p>
+                      <h3>{detail.cardTitle}</h3>
+                      <p className="section-copy">{detail.cardSummary}</p>
+                      <span className="dashboard-bubble-link">Open meaning</span>
+                    </button>
+                  </FloatingBubble>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <aside className="dashboard-sidebar animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <FloatingBubble delay={0} intensity={1.1}>
+            <button
+              className="panel dashboard-bubble-card dashboard-journal-bubble"
+              onClick={() => setModalState({ type: 'journal' })}
+              type="button"
+            >
+              <p className="eyebrow">Journal</p>
+              <h3>Your Journal</h3>
+              <p className="section-copy">
+                Keep the dashboard light, then open your notes when you're ready to capture more.
+              </p>
+              <div className="dashboard-bubble-meta">
+                {CATEGORY_ORDER.map((category) => (
+                  <span className="dashboard-bubble-chip" key={category}>
+                    {CATEGORY_LABELS[category]} {evidence[category].length}
+                  </span>
+                ))}
+              </div>
+              <span className="dashboard-bubble-link">
+                {totalEvidence > 0 ? `Open ${totalEvidence} saved moments` : 'Open journal'}
+              </span>
+            </button>
+          </FloatingBubble>
+
+          <div className="dashboard-widgets">
+            <CountdownTimer endDate={activeCycle?.endDate} />
+            <MotivationalMessage message={cycleMessage} />
+          </div>
+        </aside>
       </div>
 
-      <div className="mission-grid stagger-in">
-        <FloatingBubble delay={0} intensity={1.4}>
-          <MissionCard
-            caption="Develop directly."
-            text={activeCycleItems.build?.text ?? 'No build mission found.'}
-            title="Build"
-            category="build"
-            index={0}
-          />
-        </FloatingBubble>
-        <FloatingBubble delay={1} intensity={1.1}>
-          <MissionCard
-            caption="Influence patiently."
-            text={activeCycleItems.shape?.text ?? 'No shape mission found.'}
-            title="Shape"
-            category="shape"
-            index={1}
-          />
-        </FloatingBubble>
-        <FloatingBubble delay={2} intensity={1.2}>
-          <MissionCard
-            caption="Respond well."
-            text={activeCycleItems.workWith?.text ?? 'No work with mission found.'}
-            title="Work With"
-            category="workWith"
-            index={2}
-          />
-        </FloatingBubble>
-      </div>
+      {modalState ? (
+        <div
+          className="dashboard-modal-backdrop animate-fade-in"
+          onClick={() => setModalState(null)}
+          role="presentation"
+        >
+          <div
+            aria-labelledby={modalTitleId}
+            aria-modal="true"
+            className="panel dashboard-modal-card animate-scale-in"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            {activeInfo && selectedInfoMission ? (
+              <>
+                <div className="dashboard-modal-header">
+                  <div className="stack-md">
+                    <p className="eyebrow">{activeInfo.title}</p>
+                    <h3 id={modalTitleId}>{activeInfo.definition}</h3>
+                    <p className="section-copy">
+                      {activeInfo.meaning}
+                    </p>
+                  </div>
+                  <button
+                    className="button ghost small dashboard-modal-close"
+                    onClick={() => setModalState(null)}
+                    type="button"
+                  >
+                    Close
+                  </button>
+                </div>
 
-      <div className="dashboard-grid stagger-in" style={{ animationDelay: '0.3s' }}>
-        <CountdownTimer endDate={activeCycle?.endDate} />
-        <MotivationalMessage message={cycleMessage} />
-      </div>
+                <div className="dashboard-modal-content">
+                  <section className="dashboard-modal-panel stack-md dashboard-focus-panel">
+                    <p className="eyebrow">This week</p>
+                    <p className="mission-text">{selectedInfoMission.text}</p>
+                    <p className="section-copy">{selectedInfoMission.intention}</p>
+                  </section>
 
-      <p 
-        className="date-copy animate-fade-in" 
-        style={{ textAlign: 'center', animationDelay: '0.5s' }}
-      >
-        {formatDate(activeCycle?.startDate)} to {formatDate(activeCycle?.endDate)}
-      </p>
+                  <div className="dashboard-modal-grid">
+                    <section className="dashboard-modal-panel stack-md">
+                      <p className="eyebrow">What belongs here</p>
+                      <ul className="dashboard-modal-list">
+                        {activeInfo.examples.map((example) => (
+                          <li key={example}>{example}</li>
+                        ))}
+                      </ul>
+                    </section>
+
+                    <section className="dashboard-modal-panel stack-md">
+                      <p className="eyebrow">Helpful question</p>
+                      <p className="mission-text">{activeInfo.guidingQuestion}</p>
+                    </section>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="dashboard-modal-header">
+                  <div className="stack-md">
+                    <p className="eyebrow">Journal</p>
+                    <h3 id={modalTitleId}>Your Journal</h3>
+                    <p className="section-copy">
+                      Capture evidence without turning the dashboard into one long scroll.
+                    </p>
+                  </div>
+                  <button
+                    className="button ghost small dashboard-modal-close"
+                    onClick={() => setModalState(null)}
+                    type="button"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="journal-tab-row">
+                  {CATEGORY_ORDER.map((category) => (
+                    <button
+                      className={`journal-tab ${journalCategory === category ? 'is-active' : ''}`}
+                      key={category}
+                      onClick={() => setJournalCategory(category)}
+                      type="button"
+                    >
+                      <span>{CATEGORY_LABELS[category]}</span>
+                      <span className="journal-tab-count">{evidence[category].length}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="journal-modal-body">
+                  <EvidenceColumn
+                    entries={evidence[journalCategory]}
+                    missionText={journalMissionSummary}
+                    onAdd={(payload) => addEvidence(journalCategory, payload)}
+                    onDelete={(evidenceId) => deleteEvidence(journalCategory, evidenceId)}
+                    title={CATEGORY_LABELS[journalCategory]}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

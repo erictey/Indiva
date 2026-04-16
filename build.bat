@@ -1,6 +1,6 @@
 @echo off
-title Indiva Build
-echo Building Indiva for Windows...
+title Haven Build
+echo Building Haven for Windows...
 cd /d "%~dp0"
 call npm run electron:build
 echo.

@@ -20,8 +20,8 @@ export function MotivationalMessage({ message }: Props) {
     >
       <div className="section-header">
         <div>
-          <p className="eyebrow">Message</p>
-          <h3>Today&apos;s tone</h3>
+          <p className="eyebrow">Reminder</p>
+          <h3>A thought for today</h3>
         </div>
         <span className="badge neutral state-pill">{message.type}</span>
       </div>

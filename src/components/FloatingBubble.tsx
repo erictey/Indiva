@@ -37,7 +37,7 @@ export function FloatingBubble({ children, delay = 0, intensity = 1 }: Props) {
   }, [delay]);
 
   // Determine animation duration based on intensity
-  const animationDuration = `${8 / intensity}s`;
+  const animationDuration = `${18 / intensity}s`;
 
   return (
     <div 

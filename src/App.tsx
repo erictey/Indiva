@@ -1,16 +1,18 @@
 import { startTransition, useEffect, useState } from 'react';
+import { AmbientBubbles } from './components/AmbientBubbles';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { AutostartToggle } from './components/AutostartToggle';
 import { ScreenTransition } from './components/ScreenTransition';
 import { TitleBar } from './components/TitleBar';
 import type { AppState } from './lib/types';
+import { AboutScreen } from './screens/AboutScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
 import { ReflectionScreen } from './screens/ReflectionScreen';
 import { SelectionScreen } from './screens/SelectionScreen';
 import { SetupScreen } from './screens/SetupScreen';
 
-type AppView = 'workflow' | 'history' | 'edit' | 'settings';
+type AppView = 'workflow' | 'history' | 'edit' | 'about' | 'settings';
 
 function getStateLabel(state: AppState) {
   return state.split('_').join(' ');
@@ -41,7 +43,7 @@ function SettingsScreen() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `indiva-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `haven-export-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.append(a);
     a.click();
     a.remove();
@@ -60,7 +62,7 @@ function SettingsScreen() {
     <section className="screen stack-xl">
       <header className="panel hero-panel animate-slide-up">
         <p className="eyebrow">Settings</p>
-        <h2>Application Preferences</h2>
+        <h2>Your Preferences</h2>
       </header>
 
       <section className="panel stack-md animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -70,7 +72,7 @@ function SettingsScreen() {
             <h3>Windows Autostart</h3>
           </div>
           <p className="section-copy">
-            Launch Indiva automatically when Windows starts.
+            Open Haven automatically when you start your computer.
           </p>
         </div>
         <AutostartToggle />
@@ -83,7 +85,7 @@ function SettingsScreen() {
             <h3>Export &amp; Backup</h3>
           </div>
           <p className="section-copy">
-            Download all data as JSON. {history.length} archived cycle{history.length === 1 ? '' : 's'} stored.
+            Download all your data as a file. {history.length} completed {history.length === 1 ? 'week' : 'weeks'} saved.
           </p>
         </div>
         <div className="action-row">
@@ -100,7 +102,7 @@ function SettingsScreen() {
             <h3>Reset Everything</h3>
           </div>
           <p className="section-copy">
-            Wipe all data: core values, missions, active cycle, history, reflections. Cannot be undone.
+            This permanently removes everything — values, focuses, weeks, and reflections. There's no undo.
           </p>
         </div>
 
@@ -114,7 +116,7 @@ function SettingsScreen() {
 
         {resetStep === 'confirm' && (
           <div className="stack-md animate-scale-in">
-            <p className="field-error">Are you sure? This deletes everything permanently.</p>
+            <p className="field-error">Are you sure? This removes all your data and can't be undone.</p>
             <div className="action-row">
               <button className="button danger" onClick={() => setResetStep('typing')} type="button">
                 Yes, I want to reset
@@ -168,7 +170,13 @@ function NavButton({
 }) {
   return (
     <button
-      className={`button ${active ? '' : 'secondary'}`}
+      className={[
+        'button',
+        'secondary',
+        'small',
+        'nav-tab',
+        active ? 'nav-tab-active' : '',
+      ].filter(Boolean).join(' ')}
       onClick={onClick}
       disabled={disabled}
       type="button"
@@ -219,6 +227,7 @@ function AppShell() {
   };
 
   const activeView = view === 'edit' && !canEditModel ? 'workflow' : view;
+  const workflowLabel = state === 'setup' ? 'Setup' : 'Dashboard';
 
   const getScreenKey = () => {
     if (activeView === 'workflow') return `workflow-${state}`;
@@ -228,14 +237,15 @@ function AppShell() {
   return (
     <div className="app-shell">
       <TitleBar />
+      <AmbientBubbles />
       <header 
         className={`app-header panel ${headerVisible ? 'animate-slide-up' : ''}`}
         style={{ opacity: headerVisible ? 1 : 0 }}
       >
         <div className="brand-block">
-          <h1 className="app-logo">Indiva</h1>
+          <h1 className="app-logo">Haven</h1>
           <p className="screen-copy">
-            Values-driven weekly mission system
+            Your space for gentle growth, one week at a time
           </p>
         </div>
         <div className="header-controls">
@@ -245,7 +255,7 @@ function AppShell() {
               active={activeView === 'workflow'}
               onClick={() => changeView('workflow')}
             >
-              Workflow
+              {workflowLabel}
             </NavButton>
             <NavButton
               active={activeView === 'history'}
@@ -258,7 +268,13 @@ function AppShell() {
               disabled={!canEditModel}
               onClick={() => changeView('edit')}
             >
-              Edit Model
+              Edit
+            </NavButton>
+            <NavButton
+              active={activeView === 'about'}
+              onClick={() => changeView('about')}
+            >
+              About
             </NavButton>
             <NavButton
               active={activeView === 'settings'}
@@ -273,6 +289,7 @@ function AppShell() {
       <ScreenTransition transitionKey={getScreenKey()}>
         {activeView === 'history' ? <HistoryScreen /> : null}
         {activeView === 'edit' ? <SetupScreen mode="edit" /> : null}
+        {activeView === 'about' ? <AboutScreen /> : null}
         {activeView === 'settings' ? <SettingsScreen /> : null}
         {activeView === 'workflow' ? <WorkflowScreen /> : null}
       </ScreenTransition>

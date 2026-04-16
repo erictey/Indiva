@@ -1,7 +1,7 @@
 # Requirements Document
 **Project Title:** Tey’s Model of Individuality Web App  
 **Document Type:** Product Requirements Document  
-**Version:** 1.0
+**Version:** 1.1
 
 ## 1. Purpose
 
@@ -112,6 +112,13 @@ The system should allow:
 - deleting items
 - rewording items
 - viewing all configured items by category
+
+The system must support both predefined and user-defined weekly missions and core values:
+- The user can view and select from a predefined list of weekly missions.
+- The user can view and select from a predefined list of core values.
+- The user can add a custom weekly mission through a text input field when predefined options are not suitable.
+- The user can add a custom core value through a text input field when predefined options are not suitable.
+- Custom entries are available for selection in the same way as predefined options.
 
 ### 6.2 Local Storage
 The system must save all data locally on the user’s device.

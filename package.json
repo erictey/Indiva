@@ -1,6 +1,6 @@
 {
-  "name": "indiva",
-  "productName": "Indiva",
+  "name": "haven",
+  "productName": "Haven",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -14,8 +14,8 @@
     "electron:start": "electron ."
   },
   "build": {
-    "appId": "com.tey.indiva",
-    "productName": "Indiva",
+    "appId": "com.tey.haven",
+    "productName": "Haven",
     "directories": {
       "output": "release"
     },

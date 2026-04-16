@@ -15,6 +15,18 @@ declare global {
 
 export const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
+export function hasElectronApi() {
+  return typeof window !== 'undefined' && !!window.electronAPI;
+}
+
+export function hasAutostartApi() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.electronAPI?.getAutostart === 'function' &&
+    typeof window.electronAPI?.setAutostart === 'function'
+  );
+}
+
 export function windowMinimize() {
   window.electronAPI?.minimize();
 }

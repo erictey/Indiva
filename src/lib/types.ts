@@ -30,6 +30,25 @@ export type MissionItem = {
   usedInCurrentRotation: boolean;
 };
 
+export type EvidenceEntry = {
+  id: string;
+  text?: string;
+  imageDataUrl?: string;
+  createdAt: string;
+};
+
+export type CycleEvidence = Record<MissionCategory, EvidenceEntry[]>;
+
+export function createEmptyCycleEvidence(): CycleEvidence {
+  return { build: [], shape: [], workWith: [] };
+}
+
+export type CycleIntentions = Record<MissionCategory, string>;
+
+export function createEmptyIntentions(): CycleIntentions {
+  return { build: '', shape: '', workWith: '' };
+}
+
 export type ReflectionData = {
   text: string;
   submittedAt: string;
@@ -40,10 +59,12 @@ export type ActiveCycle = {
   buildItemId: string;
   shapeItemId: string;
   workWithItemId: string;
+  intentions: CycleIntentions;
   startDate: string;
   endDate: string;
   status: 'active' | 'awaiting_reflection' | 'completed';
   reflection?: ReflectionData;
+  evidence: CycleEvidence;
 } | null;
 
 export type HistoryCycle = {
@@ -54,12 +75,15 @@ export type HistoryCycle = {
   buildText: string;
   shapeText: string;
   workWithText: string;
+  intentions: CycleIntentions;
   startDate: string;
   endDate: string;
+  evidence: CycleEvidence;
   reflection: ReflectionData;
 };
 
 export type AppData = {
+  setupCompleted: boolean;
   coreValues: CoreValue[];
   missionItems: MissionItem[];
   activeCycle: ActiveCycle;

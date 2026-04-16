@@ -14,6 +14,7 @@ import {
   canEditModel as canEditModelForState,
   deriveAppState,
   getCycleDates,
+  hasMinimumSetup,
   validateSelection,
 } from '../lib/stateMachine';
 import {
@@ -28,7 +29,11 @@ import {
   type AppState,
   type CoreValue,
   type CycleSelection,
+  createEmptyCycleEvidence,
+  createEmptyIntentions,
+  type EvidenceEntry,
   type HistoryCycle,
+  type CycleIntentions,
   type MissionCategory,
   type MissionItem,
   type SelectionErrors,
@@ -48,7 +53,16 @@ type AppContextValue = AppData & {
   updateMissionItem: (id: string, text: string) => void;
   toggleMissionItemActive: (id: string) => void;
   deleteMissionItem: (id: string) => boolean;
-  startCycle: (selection: CycleSelection) => { ok: boolean; errors: SelectionErrors };
+  addEvidence: (
+    category: MissionCategory,
+    payload: { text?: string; imageDataUrl?: string },
+  ) => boolean;
+  deleteEvidence: (category: MissionCategory, evidenceId: string) => void;
+  completeSetup: () => void;
+  startCycle: (
+    selection: CycleSelection,
+    intentions: CycleIntentions,
+  ) => { ok: boolean; errors: SelectionErrors };
   submitReflection: (text: string) => boolean;
   deleteHistoryRecord: (id: string) => void;
   clearAllData: () => void;
@@ -63,7 +77,21 @@ type AppAction =
   | { type: 'update_mission_item'; id: string; text: string }
   | { type: 'toggle_mission_item_active'; id: string }
   | { type: 'delete_mission_item'; id: string }
-  | { type: 'start_cycle'; selection: CycleSelection; timestamp: string }
+  | {
+      type: 'add_evidence';
+      category: MissionCategory;
+      text?: string;
+      imageDataUrl?: string;
+      timestamp: string;
+    }
+  | { type: 'delete_evidence'; category: MissionCategory; evidenceId: string }
+  | { type: 'complete_setup' }
+  | {
+      type: 'start_cycle';
+      selection: CycleSelection;
+      intentions: CycleIntentions;
+      timestamp: string;
+    }
   | { type: 'mark_awaiting_reflection' }
   | { type: 'submit_reflection'; text: string; timestamp: string }
   | { type: 'delete_history_record'; id: string }
@@ -96,8 +124,10 @@ function buildHistoryCycle(
     buildText: getMissionText(items, activeCycle.buildItemId),
     shapeText: getMissionText(items, activeCycle.shapeItemId),
     workWithText: getMissionText(items, activeCycle.workWithItemId),
+    intentions: activeCycle.intentions ?? createEmptyIntentions(),
     startDate: activeCycle.startDate,
     endDate: activeCycle.endDate,
+    evidence: activeCycle.evidence,
     reflection: {
       text: reflectionText.trim(),
       submittedAt,
@@ -208,21 +238,92 @@ function appReducer(state: AppData, action: AppAction): AppData {
         missionItems: state.missionItems.filter((item) => item.id !== action.id),
       };
 
+    case 'add_evidence': {
+      if (!state.activeCycle) {
+        return state;
+      }
+
+      const text = action.text?.trim();
+      const imageDataUrl = action.imageDataUrl?.trim();
+
+      if (!text && !imageDataUrl) {
+        return state;
+      }
+
+      const entry: EvidenceEntry = {
+        id: createId(),
+        createdAt: action.timestamp,
+        ...(text ? { text } : {}),
+        ...(imageDataUrl ? { imageDataUrl } : {}),
+      };
+
+      const evidence = state.activeCycle.evidence ?? createEmptyCycleEvidence();
+      const categoryEvidence = evidence[action.category] ?? [];
+
+      return {
+        ...state,
+        activeCycle: {
+          ...state.activeCycle,
+          evidence: {
+            ...evidence,
+            [action.category]: [entry, ...categoryEvidence],
+          },
+        },
+      };
+    }
+
+    case 'delete_evidence': {
+      if (!state.activeCycle) {
+        return state;
+      }
+
+      const evidence = state.activeCycle.evidence ?? createEmptyCycleEvidence();
+      const categoryEvidence = evidence[action.category] ?? [];
+
+      return {
+        ...state,
+        activeCycle: {
+          ...state.activeCycle,
+          evidence: {
+            ...evidence,
+            [action.category]: categoryEvidence.filter((entry) => entry.id !== action.evidenceId),
+          },
+        },
+      };
+    }
+
+    case 'complete_setup':
+      if (!hasMinimumSetup(state)) {
+        return state;
+      }
+
+      return {
+        ...state,
+        setupCompleted: true,
+      };
+
     case 'start_cycle': {
       const { startDate, endDate } = getCycleDates(action.timestamp);
       const nextMissionItems = applySelectionToRotation(state.missionItems, action.selection);
 
       return {
         ...state,
+        setupCompleted: true,
         missionItems: nextMissionItems,
         activeCycle: {
           id: createId(),
           buildItemId: action.selection.build ?? '',
           shapeItemId: action.selection.shape ?? '',
           workWithItemId: action.selection.workWith ?? '',
+          intentions: {
+            build: action.intentions.build.trim(),
+            shape: action.intentions.shape.trim(),
+            workWith: action.intentions.workWith.trim(),
+          },
           startDate,
           endDate,
           status: 'active',
+          evidence: createEmptyCycleEvidence(),
         },
       };
     }
@@ -343,7 +444,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'delete_mission_item', id });
       return true;
     },
-    startCycle: (selection) => {
+    completeSetup: () => dispatch({ type: 'complete_setup' }),
+    addEvidence: (category, payload) => {
+      const text = payload.text?.trim();
+      const imageDataUrl = payload.imageDataUrl?.trim();
+
+      if (!data.activeCycle || (!text && !imageDataUrl)) {
+        return false;
+      }
+
+      dispatch({
+        type: 'add_evidence',
+        category,
+        text,
+        imageDataUrl,
+        timestamp: new Date().toISOString(),
+      });
+      return true;
+    },
+    deleteEvidence: (category, evidenceId) =>
+      dispatch({ type: 'delete_evidence', category, evidenceId }),
+    startCycle: (selection, intentions) => {
       const validation = validateSelection(data, selection, nowIso);
 
       if (!validation.isValid) {
@@ -353,7 +474,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      dispatch({ type: 'start_cycle', selection, timestamp: nowIso });
+      dispatch({ type: 'start_cycle', selection, intentions, timestamp: nowIso });
 
       return {
         ok: true,

@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import type { CoreValue } from '../lib/types';
+import { normalizeOptionText } from '../lib/utils';
 
 type Props = {
   values: CoreValue[];
   editable?: boolean;
   disabled?: boolean;
+  variant?: 'panel' | 'strip';
+  presets?: readonly string[];
   onAdd?: (text: string) => void;
   onEdit?: (id: string, text: string) => void;
   onDelete?: (id: string) => void;
@@ -14,6 +17,8 @@ export function CoreValuesDisplay({
   values,
   editable = false,
   disabled = false,
+  variant = 'panel',
+  presets = [],
   onAdd,
   onEdit,
   onDelete,
@@ -22,6 +27,7 @@ export function CoreValuesDisplay({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const existingValues = new Set(values.map((value) => normalizeOptionText(value.text)));
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -61,17 +67,27 @@ export function CoreValuesDisplay({
     setDeletingId(null);
   };
 
+  const isStrip = variant === 'strip' && !editable;
+  const showPresets = editable && presets.length > 0 && !!onAdd;
+
   return (
-    <section className="panel stack-lg animate-pulse-glow">
-      <div className="section-header">
-        <div>
-          <p className="eyebrow">Governing Layer</p>
-          <h2>Core Values</h2>
+    <section className={`panel ${isStrip ? 'core-values-strip' : 'stack-lg animate-pulse-glow'}`}>
+      {isStrip ? (
+        <div className="core-values-strip-header">
+          <p className="eyebrow">Core Values</p>
+          <p className="core-values-strip-copy">Your values shape how you show up.</p>
         </div>
-        <p className="section-copy">
-          These values sit above every weekly mission and define how the work gets done.
-        </p>
-      </div>
+      ) : (
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">What Matters Most</p>
+            <h2>Your Values</h2>
+          </div>
+          <p className="section-copy">
+            These are the things that matter most to you. They'll gently guide everything else.
+          </p>
+        </div>
+      )}
 
       {values.length > 0 ? (
         <div className="pill-row stagger-in">
@@ -81,6 +97,7 @@ export function CoreValuesDisplay({
               key={value.id}
               style={{ animationDelay: `${index * 0.08}s` }}
             >
+              <div className="pill-card-edge" aria-hidden="true" />
               {editingId === value.id ? (
                 <div className="inline-edit-form">
                   <input
@@ -105,7 +122,10 @@ export function CoreValuesDisplay({
                 </div>
               ) : (
                 <>
-                  <p>{value.text}</p>
+                  <div className="pill-card-header">
+                    <span className="pill-card-dot" aria-hidden="true" />
+                    <p className="pill-card-text">{value.text}</p>
+                  </div>
                   {editable ? (
                     <div className="inline-actions">
                       <button className="button ghost small" onClick={() => startEdit(value)} type="button">Edit</button>
@@ -119,9 +139,36 @@ export function CoreValuesDisplay({
         </div>
       ) : (
         <div className="empty-state animate-fade-in">
-          <p>Add at least one value so the app has a governing code to work from.</p>
+          <p>What matters most to you? Add a value to get started.</p>
         </div>
       )}
+
+      {showPresets ? (
+        <div className="preset-block">
+          <p className="eyebrow">Templates</p>
+          <div className="pill-row">
+            {presets.map((preset) => {
+              const isAdded = existingValues.has(normalizeOptionText(preset));
+              return (
+                <button
+                  className="button secondary small"
+                  disabled={disabled || isAdded}
+                  key={preset}
+                  onClick={() => {
+                    if (!onAdd || disabled || isAdded) return;
+                    onAdd(preset);
+                  }}
+                  title={isAdded ? 'Already added' : 'Add this value'}
+                  type="button"
+                >
+                  {isAdded ? preset : `+ ${preset}`}
+                </button>
+              );
+            })}
+          </div>
+          <p className="step-hint-subtle">Pick from these or add your own below.</p>
+        </div>
+      ) : null}
 
       {editable ? (
         <form className="form-row" onSubmit={handleSubmit}>
@@ -129,7 +176,8 @@ export function CoreValuesDisplay({
             className="text-input"
             disabled={disabled}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Add a value like Integrity, Courage, or Presence"
+            maxLength={100}
+            placeholder="Or type your own value here"
             value={draft}
           />
           <button className="button" disabled={disabled || !draft.trim()} type="submit">

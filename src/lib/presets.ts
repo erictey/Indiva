@@ -1,0 +1,55 @@
+import type { MissionCategory } from './types';
+
+export const PRESET_CORE_VALUES = [
+  'Integrity',
+  'Courage',
+  'Kindness',
+  'Presence',
+  'Responsibility',
+  'Patience',
+  'Honesty',
+  'Compassion',
+  'Curiosity',
+  'Growth',
+  'Humility',
+  'Gratitude',
+] as const;
+
+export const PRESET_MISSIONS: Record<MissionCategory, readonly string[]> = {
+  build: [
+    'Deep focus time',
+    'Moving my body',
+    'Learning something new',
+    'Putting thoughts on paper',
+    'Stillness and mindfulness',
+    'Eating with care',
+    'Connecting with others',
+    'Making something creative',
+    'Showing up for my routines',
+    'Stepping outside my comfort zone',
+  ],
+  shape: [
+    'Better sleep habits',
+    'Creating a calm space',
+    'Getting finances in order',
+    'Nurturing relationships',
+    'Making home feel good',
+    'Being intentional with time',
+    'Steady progress on big goals',
+    'Investing in my future',
+    'Building healthy habits',
+    'Creating space to learn',
+  ],
+  workWith: [
+    'Stress',
+    'Anxiety',
+    'Not knowing what comes next',
+    'Distractions',
+    'Low energy days',
+    'The urge to procrastinate',
+    'Difficult conversations',
+    'Restlessness',
+    'Feeling overwhelmed',
+    'Outside pressure',
+  ],
+} as const;

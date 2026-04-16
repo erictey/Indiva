@@ -17,9 +17,9 @@ export function TitleBar() {
   if (!isElectron) return null;
 
   return (
-    <div className="title-bar">
+      <div className="title-bar">
       <div className="title-bar-drag">
-        <span className="title-bar-label">Indiva</span>
+        <span className="title-bar-label">Haven</span>
       </div>
       <div className="title-bar-controls">
         <button

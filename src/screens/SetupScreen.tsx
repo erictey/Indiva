@@ -2,19 +2,11 @@ import { CategoryList } from '../components/CategoryList';
 import { CoreValuesDisplay } from '../components/CoreValuesDisplay';
 import { StepWizard, type StepConfig } from '../components/StepWizard';
 import { useAppContext } from '../context/AppContext';
+import { PRESET_CORE_VALUES, PRESET_MISSIONS } from '../lib/presets';
 
 type Props = {
   mode?: 'setup' | 'edit';
 };
-
-const STEPS: StepConfig[] = [
-  { key: 'greeting' },
-  { key: 'values' },
-  { key: 'build' },
-  { key: 'shape' },
-  { key: 'workWith' },
-  { key: 'summary' },
-];
 
 export function SetupScreen({ mode = 'setup' }: Props) {
   const {
@@ -28,6 +20,7 @@ export function SetupScreen({ mode = 'setup' }: Props) {
     updateMissionItem,
     toggleMissionItemActive,
     deleteMissionItem,
+    completeSetup,
   } = useAppContext();
 
   const lockedItemIds = activeCycle
@@ -57,12 +50,12 @@ export function SetupScreen({ mode = 'setup' }: Props) {
         return (
           <div className="step-greeting">
             <h2 className="greeting-title">
-              {mode === 'setup' ? 'Welcome to Indiva' : 'Edit Your Model'}
+              {mode === 'setup' ? 'Welcome to Haven' : 'Edit Your Focus Areas'}
             </h2>
             <p className="greeting-sub">
               {mode === 'setup'
-                ? 'Build your personal weekly mission system. Start by defining who you want to be.'
-                : 'Refine your values and missions. Changes take effect on your next cycle.'}
+                ? "Let's set things up together. Start by thinking about what matters most to you."
+                : 'Tweak your values and focuses anytime. Changes kick in next week.'}
             </p>
           </div>
         );
@@ -75,10 +68,11 @@ export function SetupScreen({ mode = 'setup' }: Props) {
               onAdd={addCoreValue}
               onDelete={deleteCoreValue}
               onEdit={updateCoreValue}
+              presets={PRESET_CORE_VALUES}
               values={coreValues}
             />
             {coreValues.length === 0 && (
-              <p className="step-hint">Add at least one core value to continue.</p>
+              <p className="step-hint">Add at least one value to continue.</p>
             )}
           </div>
         );
@@ -87,17 +81,18 @@ export function SetupScreen({ mode = 'setup' }: Props) {
         return (
           <div className="step-section">
             <CategoryList
-              description="Things you can actively develop through practice, attention, and repetition."
+              description="What would you like to actively grow through practice and attention?"
               items={buildItems}
               lockedItemIds={lockedItemIds}
               onAdd={(text) => addMissionItem('build', text)}
               onDelete={deleteMissionItem}
               onEdit={updateMissionItem}
               onToggleActive={toggleMissionItemActive}
+              presets={PRESET_MISSIONS.build}
               title="Build"
             />
             {!hasBuild && (
-              <p className="step-hint">Add at least one active Build mission to continue.</p>
+              <p className="step-hint">Add at least one active Build focus to continue.</p>
             )}
           </div>
         );
@@ -106,17 +101,18 @@ export function SetupScreen({ mode = 'setup' }: Props) {
         return (
           <div className="step-section">
             <CategoryList
-              description="Things you can influence gradually through effort, structure, and patience."
+              description="What part of your life would you like to gently improve over time?"
               items={shapeItems}
               lockedItemIds={lockedItemIds}
               onAdd={(text) => addMissionItem('shape', text)}
               onDelete={deleteMissionItem}
               onEdit={updateMissionItem}
               onToggleActive={toggleMissionItemActive}
+              presets={PRESET_MISSIONS.shape}
               title="Shape"
             />
             {!hasShape && (
-              <p className="step-hint">Add at least one active Shape mission to continue.</p>
+              <p className="step-hint">Add at least one active Shape focus to continue.</p>
             )}
           </div>
         );
@@ -125,17 +121,18 @@ export function SetupScreen({ mode = 'setup' }: Props) {
         return (
           <div className="step-section">
             <CategoryList
-              description="Things you cannot fully control, but can meet with steadiness and skill."
+              description="What's something difficult you'd like to meet with more steadiness and self-compassion?"
               items={workWithItems}
               lockedItemIds={lockedItemIds}
               onAdd={(text) => addMissionItem('workWith', text)}
               onDelete={deleteMissionItem}
               onEdit={updateMissionItem}
               onToggleActive={toggleMissionItemActive}
+              presets={PRESET_MISSIONS.workWith}
               title="Work With"
             />
             {!hasWorkWith && (
-              <p className="step-hint">Add at least one active Work With mission to continue.</p>
+              <p className="step-hint">Add at least one active Work With focus to continue.</p>
             )}
           </div>
         );
@@ -144,7 +141,7 @@ export function SetupScreen({ mode = 'setup' }: Props) {
         return (
           <div className="step-greeting">
             <h2 className="greeting-title">
-              {mode === 'setup' ? "You're ready" : 'Model updated'}
+              {mode === 'setup' ? "You're all set!" : 'Looking good!'}
             </h2>
             <p className="greeting-sub">
               {coreValues.length} value{coreValues.length !== 1 ? 's' : ''} ·{' '}
@@ -152,10 +149,10 @@ export function SetupScreen({ mode = 'setup' }: Props) {
               {shapeItems.filter((i) => i.isActive).length} shape ·{' '}
               {workWithItems.filter((i) => i.isActive).length} work with
             </p>
-            <p className="greeting-sub">
+            <p className="greeting-sub" style={{ opacity: 1, animation: 'none' }}>
               {mode === 'setup'
-                ? "Select your first weekly mission when you're ready."
-                : 'Return to the workflow to continue your cycle.'}
+                ? "Whenever you're ready, pick your first weekly focus."
+                : 'Head back to the dashboard to keep going.'}
             </p>
           </div>
         );
@@ -167,8 +164,9 @@ export function SetupScreen({ mode = 'setup' }: Props) {
 
   return (
     <section className="screen">
-      <StepWizard
-        completeLabel={mode === 'setup' ? 'Start Using Indiva' : 'Done'}
+        <StepWizard
+        completeLabel={mode === 'setup' ? "I'm Ready" : 'Done'}
+        onComplete={mode === 'setup' ? completeSetup : undefined}
         renderStep={renderStep}
         steps={steps}
       />

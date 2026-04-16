@@ -1,45 +1,74 @@
 import { useEffect, useState } from 'react';
-import { isElectron, getAutostart, setAutostart } from '../lib/electron';
+import { getAutostart, hasAutostartApi, setAutostart } from '../lib/electron';
 
 export function AutostartToggle() {
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [supported, setSupported] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isElectron) {
+    const supportedNow = hasAutostartApi();
+    setSupported(supportedNow);
+
+    if (!supportedNow) {
       setLoading(false);
       return;
     }
-    getAutostart().then((val) => {
-      setEnabled(val);
-      setLoading(false);
-    });
+
+    getAutostart()
+      .then((val) => {
+        setEnabled(val);
+      })
+      .catch(() => {
+        setError('Autostart is unavailable right now.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  if (!isElectron) return null;
-
   const toggle = async () => {
+    if (!supported || loading) {
+      return;
+    }
+
     const next = !enabled;
     setLoading(true);
-    await setAutostart(next);
-    setEnabled(next);
-    setLoading(false);
+    setError(null);
+
+    try {
+      const result = await setAutostart(next);
+      setEnabled(result);
+    } catch {
+      setError('Could not update startup preference.');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const label = !supported
+    ? 'Launch on startup is unavailable in this build.'
+    : error
+      ? error
+      : loading
+        ? 'Checking startup preference...'
+        : `Launch on startup ${enabled ? 'ON' : 'OFF'}`;
 
   return (
     <div className="autostart-toggle">
       <button
         className={`toggle-track ${enabled ? 'toggle-on' : ''}`}
-        disabled={loading}
-        onClick={toggle}
-        type="button"
+        aria-checked={enabled}
         aria-label="Toggle autostart"
+        disabled={loading || !supported}
+        onClick={toggle}
+        role="switch"
+        type="button"
       >
         <span className="toggle-thumb" />
       </button>
-      <span className="toggle-label">
-        Launch on startup {enabled ? 'ON' : 'OFF'}
-      </span>
+      <span className="toggle-label">{label}</span>
     </div>
   );
 }

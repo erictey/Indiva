@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { MissionItem } from '../lib/types';
+import { normalizeOptionText } from '../lib/utils';
 
 type Props = {
   title: string;
@@ -11,6 +12,7 @@ type Props = {
   disabled?: boolean;
   error?: string;
   lockedItemIds?: string[];
+  presets?: readonly string[];
   onSelect?: (id: string) => void;
   onAdd?: (text: string) => void;
   onEdit?: (id: string, text: string) => void;
@@ -28,6 +30,7 @@ export function CategoryList({
   disabled = false,
   error,
   lockedItemIds = [],
+  presets = [],
   onSelect,
   onAdd,
   onEdit,
@@ -39,6 +42,8 @@ export function CategoryList({
   const [editText, setEditText] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
+  const existingTexts = new Set(items.map((item) => normalizeOptionText(item.text)));
+  const showPresets = mode === 'edit' && presets.length > 0 && !!onAdd;
 
   const handleAdd = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,7 +82,7 @@ export function CategoryList({
     if (deletingId && onDelete) {
       const result = onDelete(deletingId);
       if (result === false) {
-        setDeleteError('This mission is part of active weekly cycle. Cannot remove yet.');
+        setDeleteError("This one is part of your current week — you can remove it after.");
         return;
       }
     }
@@ -95,6 +100,33 @@ export function CategoryList({
         <p className="section-copy">{description}</p>
       </div>
 
+      {showPresets ? (
+        <div className="preset-block">
+          <p className="eyebrow">Templates</p>
+          <div className="pill-row">
+            {presets.map((preset) => {
+              const isAdded = existingTexts.has(normalizeOptionText(preset));
+              return (
+                <button
+                  className="button secondary small"
+                  disabled={disabled || isAdded}
+                  key={preset}
+                  onClick={() => {
+                    if (!onAdd || disabled || isAdded) return;
+                    onAdd(preset);
+                  }}
+                  title={isAdded ? 'Already added' : `Add this ${title.toLowerCase()} mission`}
+                  type="button"
+                >
+                  {isAdded ? preset : `+ ${preset}`}
+                </button>
+              );
+            })}
+          </div>
+          <p className="step-hint-subtle">Pick from these or add your own below.</p>
+        </div>
+      ) : null}
+
       {items.length > 0 ? (
         <div className="item-list stagger-in">
           {items.map((item, index) => {
@@ -108,6 +140,7 @@ export function CategoryList({
               <article
                 className={[
                   'item-card',
+                  mode === 'select' ? 'is-select-mode' : '',
                   isSelected ? 'is-selected' : '',
                   mode === 'select' && !isEligible ? 'is-disabled' : '',
                   !item.isActive ? 'is-muted' : '',
@@ -118,6 +151,8 @@ export function CategoryList({
                 style={{ animationDelay: `${index * 0.05}s` }}
                 onClick={mode === 'select' && isEligible && !disabled ? () => onSelect?.(item.id) : undefined}
               >
+                <div className="item-card-selection-glow" aria-hidden="true" />
+                <div className="item-card-rail" aria-hidden="true" />
                 <div className="item-card-main">
                   {isEditing ? (
                     <div className="inline-edit-form">
@@ -144,15 +179,17 @@ export function CategoryList({
                     </div>
                   ) : (
                     <>
-                      <p>{item.text}</p>
+                      <div className="item-card-header">
+                        <p className="item-card-title">{item.text}</p>
+                        {mode === 'select' ? (
+                          <span className={`badge ${isSelected ? 'selected' : isEligible ? 'available' : 'used'}`}>
+                            {isSelected ? 'Chosen' : isEligible ? 'Available now' : 'Used this rotation'}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="badge-row">
                         {mode === 'select' ? (
-                          <>
-                            <span className="availability-dot" style={{ opacity: isEligible ? 1 : 0 }} />
-                            <span className={`badge ${isEligible ? 'available' : 'used'}`}>
-                              {isEligible ? 'Available now' : 'Used this rotation'}
-                            </span>
-                          </>
+                          <span className="availability-dot" style={{ opacity: isEligible ? 1 : 0 }} />
                         ) : null}
                         {mode === 'edit' ? (
                           <span className={`badge ${item.isActive ? 'available' : 'used'}`}>
@@ -167,12 +204,12 @@ export function CategoryList({
 
                 {!isEditing && !isDeleting && mode === 'select' ? (
                   <button
-                    className="button secondary"
+                    className={`button ${isSelected ? 'selected-action' : 'secondary'}`}
                     disabled={!isEligible || disabled}
                     onClick={(e) => { e.stopPropagation(); onSelect?.(item.id); }}
                     type="button"
                   >
-                    {isSelected ? 'Selected' : 'Choose'}
+                    {isSelected ? 'Chosen' : 'Choose'}
                   </button>
                 ) : null}
 
@@ -205,7 +242,7 @@ export function CategoryList({
         </div>
       ) : (
         <div className="empty-state animate-fade-in">
-          <p>No missions here yet. Add at least one so the weekly cycle has something to pull from.</p>
+          <p>No focuses here yet. Add one to get started — you can always change it later.</p>
         </div>
       )}
 
@@ -217,11 +254,12 @@ export function CategoryList({
             className="text-input"
             disabled={disabled}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={`Add a ${title.toLowerCase()} mission`}
+            maxLength={200}
+            placeholder={`Or type your own ${title.toLowerCase()} focus`}
             value={draft}
           />
           <button className="button" disabled={disabled || !draft.trim()} type="submit">
-            Add Mission
+            Add
           </button>
         </form>
       ) : null}

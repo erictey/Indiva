@@ -6,12 +6,12 @@ import { StepWizard, type StepConfig } from '../components/StepWizard';
 import { useAppContext } from '../context/AppContext';
 
 const REFLECTION_PROMPTS = [
-  'What did I actually do this week?',
-  'What felt difficult?',
-  'What improved?',
-  'Where did I avoid discomfort?',
-  'Did I act in line with my Core Values?',
-  'What would I do differently next week?',
+  'What actually happened this week — what did I do?',
+  'What felt hard, and how did I handle it?',
+  'Where did I surprise myself?',
+  'Was there something I kept avoiding?',
+  'Did my values show up in how I lived this week?',
+  'What would I like to try differently next time?',
 ];
 
 export function ReflectionScreen() {
@@ -28,7 +28,7 @@ export function ReflectionScreen() {
 
   const handleSubmit = () => {
     if (!text.trim()) {
-      setError('Write a reflection before starting the next cycle.');
+      setError('Take a moment to write something before moving on — even a few sentences help.');
       return;
     }
     submitReflection(text);
@@ -41,15 +41,15 @@ export function ReflectionScreen() {
       case 0:
         return (
           <div className="step-greeting">
-            <h2 className="greeting-title text-reveal">Week Complete</h2>
+            <h2 className="greeting-title text-reveal">Time to Reflect</h2>
             <p className="greeting-sub">
-              Cycle ended on{' '}
+              Your week wrapped up on{' '}
               {activeCycle ? new Date(activeCycle.endDate).toLocaleDateString(undefined, {
                 weekday: 'long',
                 month: 'long',
                 day: 'numeric'
               }) : 'unknown date'}.
-              Close the week before you start the next one.
+              Before you move on, take a moment to look back at how things went.
             </p>
           </div>
         );
@@ -59,13 +59,13 @@ export function ReflectionScreen() {
           <div className="step-section stack-lg">
             <div className="step-greeting" style={{ padding: '8px 0' }}>
               <h2 className="greeting-title" style={{ fontSize: '1.6rem' }}>
-                Your missions this week
+                Here's what you were working on
               </h2>
             </div>
             <div className="mission-grid stagger-in">
               <FloatingBubble delay={0} intensity={0.5}>
                 <MissionCard
-                  text={activeCycleItems.build?.text ?? 'No build mission.'}
+                  text={activeCycleItems.build?.text ?? 'No build focus.'}
                   title="Build"
                   category="build"
                   index={0}
@@ -73,7 +73,7 @@ export function ReflectionScreen() {
               </FloatingBubble>
               <FloatingBubble delay={1} intensity={0.5}>
                 <MissionCard
-                  text={activeCycleItems.shape?.text ?? 'No shape mission.'}
+                  text={activeCycleItems.shape?.text ?? 'No shape focus.'}
                   title="Shape"
                   category="shape"
                   index={1}
@@ -81,7 +81,7 @@ export function ReflectionScreen() {
               </FloatingBubble>
               <FloatingBubble delay={2} intensity={0.5}>
                 <MissionCard
-                  text={activeCycleItems.workWith?.text ?? 'No work with mission.'}
+                  text={activeCycleItems.workWith?.text ?? 'No work with focus.'}
                   title="Work With"
                   category="workWith"
                   index={2}
@@ -104,15 +104,16 @@ export function ReflectionScreen() {
             <section className="panel stack-md animate-scale-in">
               <div className="section-header">
                 <div>
-                  <p className="eyebrow">Your Notes</p>
-                  <h3>Write the reflection</h3>
+                  <p className="eyebrow">Your Thoughts</p>
+                  <h3>How did it go?</h3>
                 </div>
                 <p className="section-copy">
-                  A few concrete paragraphs. Honesty matters more than polish.
+                  Write whatever feels true. There's no wrong way to do this.
                 </p>
               </div>
               <textarea
                 className="text-area"
+                maxLength={5000}
                 onChange={(e) => { setText(e.target.value); setError(''); }}
                 placeholder="What happened this week? What moved, stalled, or surprised you?"
                 rows={9}
@@ -121,8 +122,8 @@ export function ReflectionScreen() {
               />
               {error && <p className="field-error animate-shake">{error}</p>}
               {text.trim().length > 0 && (
-                <p className="animate-fade-in" style={{ 
-                  color: 'var(--accent)', 
+                <p className="animate-fade-in" style={{
+                  color: 'var(--accent)',
                   fontSize: '0.85rem',
                   textAlign: 'right'
                 }}>
@@ -141,7 +142,7 @@ export function ReflectionScreen() {
   return (
     <section className="screen">
       <StepWizard
-        completeLabel="Submit Reflection"
+        completeLabel="Close This Chapter"
         onComplete={handleSubmit}
         renderStep={renderStep}
         steps={steps}

@@ -1,5 +1,5 @@
 @echo off
-title Indiva
-echo Starting Indiva...
+title Haven
+echo Starting Haven...
 cd /d "%~dp0"
 npm run electron:dev

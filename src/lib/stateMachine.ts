@@ -27,6 +27,10 @@ export function getLiveCycleStatus(activeCycle: ActiveCycle, nowIso: string) {
     return 'completed';
   }
 
+  if (activeCycle.status === 'completed') {
+    return 'completed';
+  }
+
   if (
     activeCycle.status === 'awaiting_reflection' ||
     Date.parse(nowIso) >= Date.parse(activeCycle.endDate)
@@ -34,15 +38,15 @@ export function getLiveCycleStatus(activeCycle: ActiveCycle, nowIso: string) {
     return 'awaiting_reflection';
   }
 
-  if (activeCycle.status === 'completed') {
-    return 'completed';
-  }
-
   return 'active';
 }
 
 export function deriveAppState(data: AppData, nowIso: string): AppState {
   if (!hasMinimumSetup(data)) {
+    return 'setup';
+  }
+
+  if (!data.setupCompleted) {
     return 'setup';
   }
 
@@ -88,23 +92,23 @@ export function validateSelection(
   const appState = deriveAppState(data, nowIso);
 
   if (appState === 'setup') {
-    errors.form = 'Finish setting up at least one value and one mission in each category first.';
+    errors.form = 'Almost there! Add at least one value and one focus in each category to get started.';
   }
 
   if (data.activeCycle) {
-    errors.form = 'Complete the current weekly cycle before starting another.';
+    errors.form = 'Finish up your current week before starting a new one.';
   }
 
   for (const category of CATEGORY_ORDER) {
     const selectedId = selection[category];
 
     if (!selectedId) {
-      errors[category] = `Choose one ${CATEGORY_LABELS[category]} mission.`;
+      errors[category] = `Pick a ${CATEGORY_LABELS[category]} focus for this week.`;
       continue;
     }
 
     if (!isMissionItemEligible(data.missionItems, selectedId)) {
-      errors[category] = 'This mission is not currently eligible in the rotation.';
+      errors[category] = 'This one had a turn recently — try a different pick this week.';
     }
   }
 

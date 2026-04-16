@@ -61,8 +61,8 @@ export function CountdownTimer({ endDate }: Props) {
     <section className={`panel stack-md ${isVisible ? 'animate-scale-in' : ''}`} style={{ opacity: isVisible ? 1 : 0 }}>
       <div className="section-header">
         <div>
-          <p className="eyebrow">Cycle Timer</p>
-          <h3>Time remaining</h3>
+          <p className="eyebrow">This Week</p>
+          <h3>Time left</h3>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function CountdownTimer({ endDate }: Props) {
 
       {urgency === 'critical' && (
         <p className="step-hint" style={{ textAlign: 'center', marginTop: '8px' }}>
-          Time is almost up! Complete your cycle soon.
+          Almost there! Your week is wrapping up soon.
         </p>
       )}
     </section>
