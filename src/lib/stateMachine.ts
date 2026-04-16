@@ -1,0 +1,122 @@
+import { getActiveMissionItems, isMissionItemEligible } from './rotation';
+import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  type ActiveCycle,
+  type AppData,
+  type AppState,
+  type CycleSelection,
+  type SelectionErrors,
+} from './types';
+
+export const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function hasMinimumSetup(data: AppData) {
+  return (
+    data.coreValues.length > 0 &&
+    CATEGORY_ORDER.every((category) => getActiveMissionItems(data.missionItems, category).length > 0)
+  );
+}
+
+export function getLiveCycleStatus(activeCycle: ActiveCycle, nowIso: string) {
+  if (!activeCycle) {
+    return null;
+  }
+
+  if (activeCycle.reflection?.text.trim()) {
+    return 'completed';
+  }
+
+  if (
+    activeCycle.status === 'awaiting_reflection' ||
+    Date.parse(nowIso) >= Date.parse(activeCycle.endDate)
+  ) {
+    return 'awaiting_reflection';
+  }
+
+  if (activeCycle.status === 'completed') {
+    return 'completed';
+  }
+
+  return 'active';
+}
+
+export function deriveAppState(data: AppData, nowIso: string): AppState {
+  if (!hasMinimumSetup(data)) {
+    return 'setup';
+  }
+
+  const cycleStatus = getLiveCycleStatus(data.activeCycle, nowIso);
+
+  if (!cycleStatus) {
+    return 'ready_to_select';
+  }
+
+  if (cycleStatus === 'active') {
+    return 'active_week';
+  }
+
+  if (cycleStatus === 'awaiting_reflection') {
+    return 'awaiting_reflection';
+  }
+
+  return 'completed_cycle';
+}
+
+export function canEditModel(state: AppState) {
+  return state !== 'active_week' && state !== 'awaiting_reflection';
+}
+
+export function canDeleteMissionItem(data: AppData, itemId: string) {
+  if (!data.activeCycle) {
+    return true;
+  }
+
+  return ![
+    data.activeCycle.buildItemId,
+    data.activeCycle.shapeItemId,
+    data.activeCycle.workWithItemId,
+  ].includes(itemId);
+}
+
+export function validateSelection(
+  data: AppData,
+  selection: CycleSelection,
+  nowIso: string,
+): { isValid: boolean; errors: SelectionErrors } {
+  const errors: SelectionErrors = {};
+  const appState = deriveAppState(data, nowIso);
+
+  if (appState === 'setup') {
+    errors.form = 'Finish setting up at least one value and one mission in each category first.';
+  }
+
+  if (data.activeCycle) {
+    errors.form = 'Complete the current weekly cycle before starting another.';
+  }
+
+  for (const category of CATEGORY_ORDER) {
+    const selectedId = selection[category];
+
+    if (!selectedId) {
+      errors[category] = `Choose one ${CATEGORY_LABELS[category]} mission.`;
+      continue;
+    }
+
+    if (!isMissionItemEligible(data.missionItems, selectedId)) {
+      errors[category] = 'This mission is not currently eligible in the rotation.';
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
+export function getCycleDates(startIso: string) {
+  return {
+    startDate: startIso,
+    endDate: new Date(Date.parse(startIso) + WEEK_IN_MS).toISOString(),
+  };
+}
