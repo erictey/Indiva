@@ -1,0 +1,75 @@
+HAVEN - Development Requirements
+
+SYSTEM REQUIREMENTS
+-------------------
+  OS      : Windows 10 / 11 (64-bit)
+  RAM     : 4 GB minimum, 8 GB recommended
+  Disk    : 500 MB free space
+  Display : 1280 x 720 minimum
+
+RUNTIME REQUIREMENTS (development)
+-----------------------------------
+  Node.js : 18.x or later   https://nodejs.org
+  npm     : 9.x or later    (bundled with Node.js)
+  Git     : any recent      https://git-scm.com  (optional, for cloning)
+
+  Note: Electron (~41.x) is downloaded automatically by npm install.
+  It requires no separate installation.
+
+DEVELOPMENT SETUP
+-----------------
+
+1. GET THE SOURCE
+   Clone or download the repository to a local folder:
+
+     git clone <repo-url>
+     cd haven
+
+   Or extract the ZIP and open a terminal in the project folder.
+
+2. INSTALL DEPENDENCIES
+   Run:
+
+     npm install
+
+   This downloads Electron, React, Vite, TypeScript, and electron-builder.
+
+3. RUN IN DEVELOPMENT MODE
+   Opens a Vite dev server and an Electron window with hot reload:
+
+     npm run electron:dev
+
+4. RUN WEB PREVIEW ONLY
+   Run:
+
+     npm run dev
+
+   Then open http://localhost:5173 in a browser.
+
+BUILDING THE INSTALLER
+----------------------
+
+1. Build the distributable:
+
+     npm run build
+
+   Output: release/ folder containing a Windows NSIS installer (.exe).
+
+2. Web bundle only:
+
+     npm run web:build
+
+TROUBLESHOOTING
+---------------
+
+  "electron not found" after npm install
+      Run: npm install --save-dev electron
+
+  App window does not open in electron:dev
+      Vite may still be starting. Wait a few seconds and check the terminal.
+
+  Port 5173 already in use
+      Kill the process on that port or change the port in vite.config.ts.
+
+  Windows Defender / SmartScreen blocks the installer
+      Expected for unsigned builds. Click "More info" then "Run anyway".

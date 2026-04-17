@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"C:\\\\Users\\\\pengh\\\\Documents\\\\AppProjects\\\\Haven\\\\src\" -type f \\\\\\( -name \"*.tsx\" -o -name \"*.ts\" \\\\\\) -exec wc -l {} +)",
+      "Bash(npm install *)",
+      "Bash(npm test *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}
